@@ -6,7 +6,8 @@ Features:
 
 ## How to use
 1. Add a txt-file with your messages
-2. Edit config.ini
-3. Run autoposter.py
-4. ?????
-5. PROFIT!
+2. Create your standalone app in VK (https://vk.com/editapp?act=create) 
+3. Edit config.ini
+4. Run autoposter.py
+5. ?????
+6. PROFIT!
