@@ -20,6 +20,7 @@ def get_files(path):
 
 def get_poster():
     """
+    For testing purposes. 
     :return: Anime picture URL from MyAnimeList.net, number of attempts to find it,
     and anime's ID on MAL
     """
