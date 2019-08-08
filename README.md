@@ -9,6 +9,7 @@ Features:
 2. Install required Python packages, which you can grab via pip:
 
 `$ pip3 install -r requirements.txt`
+
 3. Add a txt-file with your messages (you can use test.txt for testing purpose)
 4. Create your standalone app in VK (https://vk.com/editapp?act=create)
 5. Edit config.ini
