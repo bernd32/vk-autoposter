@@ -29,6 +29,6 @@ Features:
 - **PostInterval**: Post intervals in seconds
 - **PhotoSource**: Options:
   - mal: attach a random picture from MyAnimeList.net (this is for testing purposes and it's going to be removed later)
-  - local: attach photos from your local directory one by one, starting from the first file (sorted by filename)
-  - rand-local: attach a random photo from your local directory
-- **PhotoLocation**: Specify the absolute or relative path to photos (e.g. `C:\Pictures\photos` or `photos`)
+  - local: attach photos from your directory one by one, starting from the first file (sorted by filename)
+  - rand-local: attach a random photo from your directory
+- **PhotoLocation**: Specify the absolute or relative path to photos (e.g. `C:\Pictures\photos` or `pics`)
