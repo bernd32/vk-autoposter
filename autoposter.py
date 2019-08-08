@@ -20,7 +20,7 @@ def get_files(path):
 
 def get_poster():
     """
-    For testing purposes. 
+    For testing purposes.
     :return: Anime picture URL from MyAnimeList.net, number of attempts to find it,
     and anime's ID on MAL
     """
@@ -105,7 +105,10 @@ def main():
             if photo_source == 'rand-local':
                 files = list(get_files(photo_location))
                 image = random.choice(files)
-                image = photo_location + '\\' + image
+                if os.name == 'nt':
+                    image = photo_location + '\\' + image
+                else:
+                    image = photo_location + '/' + image
                 photo = upload.photo_wall(photos=image)[0]
                 logging.info('Photo attached:' + image)
             if photo_source == 'local':
@@ -113,7 +116,10 @@ def main():
                 if current_position >= len(files):
                     current_position = 0  # Reset
                 current_position += 1
-                image = photo_location + '\\' + files[current_position-1]
+                if os.name == 'nt':
+                    image = photo_location + '\\' + image
+                else:
+                    image = photo_location + '/' + image
                 photo = upload.photo_wall(photos=image)[0]
                 logging.info('Photo attached:' + image)
             attachments.append('photo{}_{}'.format(photo['owner_id'], photo['id']))
