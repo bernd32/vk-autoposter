@@ -41,13 +41,25 @@ def get_poster():
             time.sleep(1)  # Wait a second before starting a new search
 
 
+def get_vk_api(login, password, app_id, scope='wall,photos'):
+    vk_session = vk_api.VkApi(login=login, password=password,
+                              app_id=int(app_id), scope=scope)
+    try:
+        vk_session.auth()
+    except vk_api.AuthError as error_msg:
+        logging.error(error_msg)
+        return print(error_msg)
+    vk = vk_session.get_api()
+    upload = VkUpload(vk_session)
+    return vk, upload
+
+
+
 def main():
     logging.basicConfig(format='%(asctime)s %(levelname)s:%(message)s',
                         filename='events.log',
                         datefmt='%d-%m-%Y %H:%M:%S',
                         level=logging.DEBUG)
-
-    scope = 'wall,photos'
     # Reading config file
     config = configparser.ConfigParser()
     config.read('config.ini')
@@ -81,18 +93,8 @@ def main():
     line_position = 0
     while True:
         session = requests.Session()
-        vk_session = vk_api.VkApi(login=login, password=password,
-                                  app_id=int(app_id), scope=scope)
-        try:
-            vk_session.auth()
-        except vk_api.AuthError as error_msg:
-            print(error_msg)
-            logging.error(error_msg)
-            return
-        vk = vk_session.get_api()
-
+        vk, upload = get_vk_api(login, password, app_id)
         # Get a picture
-        upload = VkUpload(vk_session)
         attachments = []
         if attach_photo == 'yes':
             # Loading a picture
@@ -115,6 +117,7 @@ def main():
                 files = list(get_files(photo_location))
                 if current_position >= len(files):
                     current_position = 0  # Reset
+                image = files[current_position]
                 current_position += 1
                 if os.name == 'nt':
                     image = photo_location + '\\' + image
