@@ -18,9 +18,8 @@ def get_files(path):
             yield f
 
 
-def get_poster():
+def get_mal_picture():
     """
-    For testing purposes.
     :return: Anime picture URL from MyAnimeList.net, number of attempts to find it,
     and anime's ID on MAL
     """
@@ -39,20 +38,47 @@ def get_poster():
             return img_src, attempts, mal_id
         else:
             time.sleep(1)  # Wait a second before starting a new search
+           
+def get_vndb_picture():
+    """
+    :return: VN picture URL from vndb, number of attempts to find it,
+    and vndb's ID
+    """
+    attempts = 0
+    while True:
+        attempts += 1
+        vndb_id = str(random.randint(1, 26400))
+        result = requests.get('https://vndb.org/v' + vndb_id)
+        page = result.text
+        soup = BeautifulSoup(page, 'html.parser')
+        try:
+            img_src = soup.find('div', class_='imghover--visible').img['src']
+        except (AttributeError, TypeError):
+            img_src = 404
+        if img_src != 404:
+            return img_src, attempts, vndb_id
+        else:
+            time.sleep(1)  # Wait a second before starting a new search
 
 
-def get_vk_api(login, password, app_id, scope='wall,photos'):
-    vk_session = vk_api.VkApi(login=login, password=password,
-                              app_id=int(app_id), scope=scope)
-    try:
-        vk_session.auth()
-    except vk_api.AuthError as error_msg:
-        logging.error(error_msg)
-        return print(error_msg)
-    vk = vk_session.get_api()
-    upload = VkUpload(vk_session)
-    return vk, upload
-
+def get_verse(filepath, min_len):
+    """
+    :param filepath: Path to txt-file (e.g. /home/Documents/file.txt or file.txt)
+    :param min_len: Minimum line length
+    :return: A random text line (exclude ones with ':', '=' etc. last character)
+    """
+    if filepath == '':
+        return '', 0
+    else:
+        attempts = 0
+        lines = sum(1 for line in open(filepath))
+        while True:
+            attempts += 1
+            line = linecache.getline(filepath, random.randint(2, lines))
+            line = line.rstrip()
+            last_sym = line[-1:]
+            if last_sym not in (",", ":", "=", "-") and len(line) > min_len:
+                return line, attempts
 
 
 def main():
@@ -60,6 +86,8 @@ def main():
                         filename='events.log',
                         datefmt='%d-%m-%Y %H:%M:%S',
                         level=logging.DEBUG)
+
+    scope = 'wall,photos'
     # Reading config file
     config = configparser.ConfigParser()
     config.read('config.ini')
@@ -67,7 +95,7 @@ def main():
     password = config['Auth']['Password']
     app_id = config['Auth']['App_ID']
     txt_file = config['Post']['TxtFile']
-    min_length = int(config['Post']['LineMinimumLength'])
+    min_length = config['Post']['LineMinimumLength']
     post_interval = config['Post']['PostInterval']
     attach_photo = config['Post']['AttachPhoto']
     owner_id = config['Post']['OwnerID']
@@ -75,9 +103,6 @@ def main():
     photo_location = config['Post']['PhotoLocation']
     random_line = config['Post']['RandomLine']
 
-    if txt_file == '':
-        print('Specify your text file in config.ini')
-        quit()
     if app_id == '':
         print('Specify app id in config.ini')
         quit()
@@ -90,65 +115,72 @@ def main():
         owner_id = int(owner_id)
 
     current_position = 0
-    line_position = 0
+    
     while True:
         session = requests.Session()
-        vk, upload = get_vk_api(login, password, app_id)
-        # Get a picture
+        vk_session = vk_api.VkApi(login=login, password=password,
+                                  app_id=int(app_id), scope=scope)
+        try:
+            vk_session.auth()
+        except vk_api.AuthError as error_msg:
+            print(error_msg)
+            logging.error(error_msg)
+            return
+        vk = vk_session.get_api()
+        upload = VkUpload(vk_session)
         attachments = []
+        
+        if post_interval == '':
+            # post a message in random interval between 1 and 10800 seconds
+            post_interval = random.randint(1, 10800)
+            logging.info('Random interval = true')
+
         if attach_photo == 'yes':
             # Loading a picture
             if photo_source == 'mal':
-                image_url, p_attempts, mal_id = get_poster()
+                image_url, p_attempts, mal_id = get_mal_picture()
                 image = session.get(image_url, stream=True)
                 photo = upload.photo_wall(photos=image.raw)[0]
+                attachments.append(
+                    'photo{}_{}'.format(photo['owner_id'], photo['id'])
+                )
                 logging.info('Attempts to find a picture: %s', str(p_attempts))
                 logging.info('MAL ID: %s', str(mal_id))
+                
+            if photo_source == 'vndb':
+                image_url, p_attempts, vn_id = get_vndb_picture()
+                image = session.get(image_url, stream=True)
+                photo = upload.photo_wall(photos=image.raw)[0]
+                attachments.append(
+                    'photo{}_{}'.format(photo['owner_id'], photo['id'])
+                )
+                logging.info('Attempts to find a picture: %s', str(p_attempts))
+                logging.info('VNDB ID: %s', str(vn_id))
+                
             if photo_source == 'rand-local':
                 files = list(get_files(photo_location))
                 image = random.choice(files)
-                if os.name == 'nt':
-                    image = photo_location + '\\' + image
-                else:
-                    image = photo_location + '/' + image
+                image = photo_location + '\\' + image
                 photo = upload.photo_wall(photos=image)[0]
-                logging.info('Photo attached:' + image)
+                attachments.append(
+                    'photo{}_{}'.format(photo['owner_id'], photo['id'])
+                )
+                
             if photo_source == 'local':
                 files = list(get_files(photo_location))
                 if current_position >= len(files):
-                    current_position = 0  # Reset
-                image = files[current_position]
+                    current_position = 0
                 current_position += 1
-                if os.name == 'nt':
-                    image = photo_location + '\\' + image
-                else:
-                    image = photo_location + '/' + image
+                image = photo_location + '\\' + files[current_position-1]
                 photo = upload.photo_wall(photos=image)[0]
-                logging.info('Photo attached:' + image)
-            attachments.append('photo{}_{}'.format(photo['owner_id'], photo['id']))
+                attachments.append(
+                    'photo{}_{}'.format(photo['owner_id'], photo['id'])
+                )
 
-        # Get a text
-        total_lines = sum(1 for line in open(txt_file))
-        if random_line == 'yes':
-            # Filtering random lines using the loop
-            while True:
-                curr_line = linecache.getline(txt_file, random.randint(1, total_lines))
-                if len(curr_line) >= min_length:
-                    txt_line = curr_line
-                    break
-        else:
-            # Filtering lines and sending them one by one.
-            # Start over from the first line after last line is sent
-            with open(txt_file) as f:
-                lines = filter(lambda s: len(s) >= min_length, (line.rstrip() for line in f))
-                lines_list = list(lines)
-                txt_line = lines_list[line_position]
-            line_position += 1
-            if line_position >= len(lines_list):
-                line_position = 0
-
-        vk.wall.post(attachment=','.join(attachments), message=txt_line, owner_id=owner_id)
-        logging.info('Sent text: "%s"', txt_line)
+        text, v_attempts = get_verse(txt_file, int(min_length))
+        vk.wall.post(attachment=','.join(attachments), message=text, owner_id=owner_id)
+        logging.info('Sent text: "%s"', text)
+        logging.info('Attempts to find a text: %s', str(v_attempts))
         print('Message sent')
         timestamp = int(time.time())
         value = datetime.fromtimestamp(timestamp + int(post_interval))
