@@ -1,7 +1,7 @@
 # vk-autoposter
 
 
-**UPD. THIS SCRIPT DOESN'T WORK ANYMORE DUE TO CHANGE OF VK'S API POLICY. DO NOT USE IT.**
+<strong><span style="color: green"> Some green text>UPD. THIS SCRIPT DOESN'T WORK ANYMORE DUE TO CHANGE OF VK'S API POLICY. DO NOT USE IT.</span></strong>
 
 
 A simple script that automatically sends messages in social network service VK at regular intervals.
