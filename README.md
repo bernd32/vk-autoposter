@@ -1,4 +1,9 @@
 # vk-autoposter
+
+
+**UPD. DOESN'T WORK ANYMORE DUE TO CHANGE OF VK'S API POLICY. DO NOT USE IT. **
+
+
 A simple script that automatically sends messages in social network service VK at regular intervals.
 Features:
 - Posting messages to someone's wall, to VK community or to your own wall
